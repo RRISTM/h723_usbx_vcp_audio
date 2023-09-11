@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    app_usbx_device.c
-  * @author  MCD Application Team
-  * @brief   USBX Device applicative file
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2020-2021 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    app_usbx_device.c
+ * @author  MCD Application Team
+ * @brief   USBX Device applicative file
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2020-2021 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -33,7 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define UX_AUDIO_FRAME_BUFFER_NB 10
+#define UX_AUDIO_MAX_FRAME_SIZE 4096
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,20 +50,23 @@ static UX_SLAVE_CLASS_CDC_ACM_PARAMETER cdc_acm_parameter;
 static TX_THREAD ux_device_app_thread;
 
 /* USER CODE BEGIN PV */
+static UX_DEVICE_CLASS_AUDIO_STREAM_PARAMETER audio_stream_parameter[1];
+static UX_DEVICE_CLASS_AUDIO_PARAMETER audio_parameter;
 
+extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 static VOID app_ux_device_thread_entry(ULONG thread_input);
 /* USER CODE BEGIN PFP */
-
+VOID USBX_APP_Device_Init(VOID);
 /* USER CODE END PFP */
 
 /**
-  * @brief  Application USBX Device Initialization.
-  * @param  memory_ptr: memory pointer
-  * @retval status
-  */
+ * @brief  Application USBX Device Initialization.
+ * @param  memory_ptr: memory pointer
+ * @retval status
+ */
 UINT MX_USBX_Device_Init(VOID *memory_ptr)
 {
   UINT ret = UX_SUCCESS;
@@ -75,14 +79,14 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   UCHAR *string_framework;
   UCHAR *language_id_framework;
   UCHAR *pointer;
-  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL*)memory_ptr;
+  TX_BYTE_POOL *byte_pool = (TX_BYTE_POOL *)memory_ptr;
 
   /* USER CODE BEGIN MX_USBX_Device_Init0 */
-
+  UCHAR status;
   /* USER CODE END MX_USBX_Device_Init0 */
 
   /* Allocate the stack for USBX Memory */
-  if (tx_byte_allocate(byte_pool, (VOID **) &pointer,
+  if (tx_byte_allocate(byte_pool, (VOID **)&pointer,
                        USBX_DEVICE_MEMORY_STACK_SIZE, TX_NO_WAIT) != TX_SUCCESS)
   {
     /* USER CODE BEGIN USBX_ALLOCATE_STACK_ERORR */
@@ -129,9 +133,9 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   }
 
   /* Initialize the cdc acm class parameters for the device */
-  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate   = USBD_CDC_ACM_Activate;
+  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate = USBD_CDC_ACM_Activate;
   cdc_acm_parameter.ux_slave_class_cdc_acm_instance_deactivate = USBD_CDC_ACM_Deactivate;
-  cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change    = USBD_CDC_ACM_ParameterChange;
+  cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change = USBD_CDC_ACM_ParameterChange;
 
   /* USER CODE BEGIN CDC_ACM_PARAMETER */
 
@@ -155,8 +159,62 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
   }
 
+  /*audio*/
+
+  /* Set the parameters for Audio streams. */
+  /* Set the application-defined callback that is invoked when the
+     host requests a change to the alternate setting. */
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_change = USBD_AUDIO_Read_Change;
+
+  /* Set the application-defined callback that is invoked whenever
+     a USB packet (audio frame) is sent to or received from the host. */
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_frame_done = USBD_AUDIO_Read_Done;
+
+  /* Set the number of audio frame buffers in the FIFO. */
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_max_frame_buffer_nb = UX_AUDIO_FRAME_BUFFER_NB;
+
+  /* Set the maximum size of each audio frame buffer in the FIFO. */
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_max_frame_buffer_size = UX_AUDIO_MAX_FRAME_SIZE;
+
+  /* Set the internally-defined audio processing thread entry pointer. If the application wishes to receive audio from the host
+     (which is the case in this example), ux_device_class_audio_read_thread_entry should be used;
+     if the application wishes to send data to the host, ux_device_class_audio_write_thread_entry should be used. */
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_thread_entry = ux_device_class_audio_read_thread_entry;
+
+
+  /* Set the parameters for Audio device. */
+
+  /* Set the number of streams. */
+  audio_parameter.ux_device_class_audio_parameter_streams_nb = 1;
+
+  /* Set the pointer to the first audio stream parameter.
+     Note that we initialized this parameter in the previous section.
+     Also note that for more than one streams, this should be an array. */
+  audio_parameter.ux_device_class_audio_parameter_streams = audio_stream_parameter;
+
+  /* Set the application-defined callback that is invoked when the audio class
+     is activated i.e. device is connected to host. */
+  audio_parameter.ux_device_class_audio_parameter_callbacks.ux_slave_class_audio_instance_activate = USBD_AUDIO_Activate;
+
+  /* Set the application-defined callback that is invoked when the audio class
+     is deactivated i.e. device is disconnected from host. */
+
+  audio_parameter.ux_device_class_audio_parameter_callbacks.ux_slave_class_audio_instance_deactivate = USBD_AUDIO_Deactivate;
+
+  /* Set the application-defined callback that is invoked when the stack receives a control request from the host.
+     See below for more details.
+  */
+  audio_parameter.ux_device_class_audio_parameter_callbacks.ux_device_class_audio_control_process = USBD_AUDIO_Request;
+
+  /* Initialize the device Audio class. This class owns interfaces starting with 0. */
+  status = ux_device_stack_class_register(_ux_system_slave_class_audio_name, ux_device_class_audio_entry, 1, 0, &audio_parameter);
+  if (status != UX_SUCCESS)
+    return;
+
+
+
   /* Allocate the stack for device application main thread */
-  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
+  if (tx_byte_allocate(byte_pool, (VOID **)&pointer, UX_DEVICE_APP_THREAD_STACK_SIZE,
                        TX_NO_WAIT) != TX_SUCCESS)
   {
     /* USER CODE BEGIN MAIN_THREAD_ALLOCATE_STACK_ERORR */
@@ -183,17 +241,55 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
 }
 
 /**
-  * @brief  Function implementing app_ux_device_thread_entry.
-  * @param  thread_input: User thread input parameter.
-  * @retval none
-  */
+ * @brief  Function implementing app_ux_device_thread_entry.
+ * @param  thread_input: User thread input parameter.
+ * @retval none
+ */
 static VOID app_ux_device_thread_entry(ULONG thread_input)
 {
   /* USER CODE BEGIN app_ux_device_thread_entry */
-  TX_PARAMETER_NOT_USED(thread_input);
+ 	/* Initialization of USB device */
+	  USBX_APP_Device_Init();
+
+	  /* Start device USB */
+	  HAL_PCD_Start(&hpcd_USB_OTG_HS);
+	  /* Wait for message queue to start/stop the device */
+
+
+
+//	  while(1)
+//	  {
+//
+//	  }
   /* USER CODE END app_ux_device_thread_entry */
 }
 
 /* USER CODE BEGIN 1 */
+/**
+  * @brief  USBX_APP_Device_Init
+  *         Initialization of USB device.
+  * @param  none
+  * @retval none
+  */
+VOID USBX_APP_Device_Init(VOID)
+{
+  /* USER CODE BEGIN USB_Device_Init_PreTreatment_0 */
+  /* USER CODE END USB_Device_Init_PreTreatment_0 */
 
+  /* USB_OTG_HS init function */
+//  MX_USB_OTG_HS_PCD_Init();
+
+  /* USER CODE BEGIN USB_Device_Init_PreTreatment_1 */
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x100);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x10);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x10);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x20);
+  /* USER CODE END USB_Device_Init_PreTreatment_1 */
+
+  /* initialize the device controller driver*/
+  _ux_dcd_stm32_initialize((ULONG)USB_OTG_HS, (ULONG)&hpcd_USB_OTG_HS);
+
+  /* USER CODE BEGIN USB_Device_Init_PostTreatment */
+  /* USER CODE END USB_Device_Init_PostTreatment */
+}
 /* USER CODE END 1 */

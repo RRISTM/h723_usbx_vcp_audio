@@ -581,15 +581,15 @@ uint8_t  USBD_FrameWork_AddToConfDesc(USBD_DevClassHandleTypeDef *pdev, uint8_t 
       /* Check the current speed to assign endpoints */
       if (Speed == USBD_HIGH_SPEED)
       {
-        /* Assign OUT Endpoint */
-        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPOUT_ADDR,
-                                USBD_EP_TYPE_ISOC, USBD_AUDIO_EPOUT_HS_MPS);
+        /* Assign IN Endpoint */
+        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPIN_ADDR,
+                                USBD_EP_TYPE_ISOC, USBD_AUDIO_EPIN_HS_MPS);
       }
       else
       {
-        /* Assign OUT Endpoint */
-        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPOUT_ADDR,
-                                USBD_EP_TYPE_ISOC, USBD_AUDIO_EPOUT_FS_MPS);
+        /* Assign IN Endpoint */
+        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPIN_ADDR,
+                                USBD_EP_TYPE_ISOC, USBD_AUDIO_EPIN_FS_MPS);
       }
 
       /* Configure and Append the Descriptor */
@@ -807,6 +807,7 @@ static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t 
   static USBD_AUDIOOutputTerminalDescTypedef *pOutputTerminalDesc;
   static USBD_AUDIO20ASInterfaceDescTypedef *pAsInterfaceDesc;
   static USBD_AUDIO20ASFormatTypeDescTypedef *pAsFormatTypeDesc;
+  static USBD_AUDIO20ASEndpointDescTypedef *pAsEndpointDesc;
 
   static USBD_CDCCallMgmFuncDescTypedef   *pCallMgmDesc;
   static USBD_CDCACMFuncDescTypedef       *pACMDesc;
@@ -836,9 +837,9 @@ static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t 
   pHeadDesc->bLength = 0x09U;
   pHeadDesc->bDescriptorType = 0x24U;
   pHeadDesc->bDescriptorSubtype = 0x01U;
-  pHeadDesc->bcdADC = 0x0002;
-  pHeadDesc->bCategory =0x08;
-  pHeadDesc->wTotalLength =64;
+  pHeadDesc->bcdADC = 0x0200;//2.0
+  pHeadDesc->bCategory =0x03;
+  pHeadDesc->wTotalLength =64;//check
   pHeadDesc->bmControls =0;
   *Sze += (uint32_t)sizeof(USBD_AUDIOHeaderFuncDescTypedef);
 
@@ -847,8 +848,8 @@ static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t 
   pClockDesc->bLength=8;
   pClockDesc->bDescriptorType=0x24;
   pClockDesc->bDescriptorSubtype=0xA;
-  pClockDesc->bClockID=0x10;
-  pClockDesc->bmAttributes=0x05;
+  pClockDesc->bClockID=25;
+  pClockDesc->bmAttributes=0x01;
   pClockDesc->bmControls=0x01;
   pClockDesc->bAssocTerminal=0x0;
   pClockDesc->iClockSource=0;
@@ -861,12 +862,12 @@ static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t 
   pInputTerminalDesc->bLength=17;
   pInputTerminalDesc->bDescriptorType=0x24;
   pInputTerminalDesc->bDescriptorSubtype=0x2;
-  pInputTerminalDesc->bTerminalID=0x4; 
-  pInputTerminalDesc->wTerminalType =0x0101;
+  pInputTerminalDesc->bTerminalID=17;
+  pInputTerminalDesc->wTerminalType =0x0201;
   pInputTerminalDesc->bAssocTerminal=0x0;
-  pInputTerminalDesc->bCSourceID =0x10;
+  pInputTerminalDesc->bCSourceID =25;
   pInputTerminalDesc->bNrChannels =2;
-  pInputTerminalDesc->bmChannelConfig=0x0;
+  pInputTerminalDesc->bmChannelConfig=0x03;
   pInputTerminalDesc->iChannelNames=0;
   pInputTerminalDesc->bmControls=0x0;
   pInputTerminalDesc->iTerminal=0; 
@@ -878,9 +879,9 @@ static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t 
   pFeatureUnitDesc->bLength=18;
   pFeatureUnitDesc->bDescriptorType=0x24;
   pFeatureUnitDesc->bDescriptorSubtype=0x6;
-  pFeatureUnitDesc->bUnitID=0x5;
-  pFeatureUnitDesc->bSourceID=0x4; 
-  pFeatureUnitDesc->bmaControls0=0xF;
+  pFeatureUnitDesc->bUnitID=21;
+  pFeatureUnitDesc->bSourceID=11;
+  pFeatureUnitDesc->bmaControls0=0xF;//check
   pFeatureUnitDesc->bmaControls1=0x0;
   pFeatureUnitDesc->bmaControls2=0x0;
   pFeatureUnitDesc->iFeature=0; 
@@ -893,11 +894,11 @@ pOutputTerminalDesc= ((USBD_AUDIOOutputTerminalDescTypedef *)((uint32_t)pConf + 
   pOutputTerminalDesc->bLength=12;
   pOutputTerminalDesc->bDescriptorType=0x24;
   pOutputTerminalDesc->bDescriptorSubtype=0x03;
-  pOutputTerminalDesc->bTerminalID=0x6; 
-  pOutputTerminalDesc->wTerminalType=0x0301;
+  pOutputTerminalDesc->bTerminalID=19;
+  pOutputTerminalDesc->wTerminalType=0x0101;
   pOutputTerminalDesc->bAssocTerminal=0x0;
-  pOutputTerminalDesc->bSourceID=0x05;
-  pOutputTerminalDesc->bCSourceID=0x10;
+  pOutputTerminalDesc->bSourceID=21;
+  pOutputTerminalDesc->bCSourceID=25;
   pOutputTerminalDesc->bmControls=0x0;
   pOutputTerminalDesc->iTerminal=0; 
 
@@ -913,12 +914,12 @@ pOutputTerminalDesc= ((USBD_AUDIOOutputTerminalDescTypedef *)((uint32_t)pConf + 
   pAsInterfaceDesc->bLength=16;
   pAsInterfaceDesc->bDescriptorType=0x24;
   pAsInterfaceDesc->bDescriptorSubtype=0x1;
-  pAsInterfaceDesc->bTerminalLink=0x04;
+  pAsInterfaceDesc->bTerminalLink=19;
   pAsInterfaceDesc->bmControls=0x0;
   pAsInterfaceDesc->bFormatType=0x1;
   pAsInterfaceDesc->bmFormats=0x1;
   pAsInterfaceDesc->bNrChannels=2;
-  pAsInterfaceDesc->bmChannelConfig=0x0;
+  pAsInterfaceDesc->bmChannelConfig=0x03;
   pAsInterfaceDesc->iChannelNames=0;
 
 *Sze += (uint32_t)sizeof(USBD_AUDIO20ASInterfaceDescTypedef);
@@ -937,6 +938,15 @@ pOutputTerminalDesc= ((USBD_AUDIOOutputTerminalDescTypedef *)((uint32_t)pConf + 
   /* Append Endpoint descriptor to Configuration descriptor */
   __USBD_FRAMEWORK_SET_EP((pdev->tclasslist[pdev->classId].Eps[0].add), (USBD_EP_TYPE_ISOC),(uint16_t)(pdev->tclasslist[pdev->classId].Eps[0].size),(0x1U), (0x01U));
 
+  pAsEndpointDesc= ((USBD_AUDIO20ASEndpointDescTypedef *)((uint32_t)pConf + *Sze));
+  pAsEndpointDesc->bLength=8;
+  pAsEndpointDesc->bDescriptorType=0x25;
+  pAsEndpointDesc->bDescriptorSubtype=0x1;
+  pAsEndpointDesc->bmAttributes=0;
+  pAsEndpointDesc->bmControl=0;
+  pAsEndpointDesc->bLockDelayUnits=0;
+  pAsEndpointDesc->wLockDelay=0;
+  *Sze += (uint32_t)sizeof(USBD_AUDIO20ASEndpointDescTypedef);
 
   /* Update Config Descriptor and IAD descriptor */
   ((USBD_ConfigDescTypedef *)pConf)->bNumInterfaces += 2U;

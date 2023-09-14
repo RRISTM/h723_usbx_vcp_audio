@@ -344,6 +344,18 @@ typedef struct
   uint8_t bBitResolution;
 } __PACKED USBD_AUDIO20ASFormatTypeDescTypedef;
 
+typedef struct
+{
+  /* Audio 20 as format type Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bmAttributes;
+  uint8_t bmControl;
+  uint8_t bLockDelayUnits;
+  uint16_t wLockDelay;
+} __PACKED USBD_AUDIO20ASEndpointDescTypedef;
+
 
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private_defines */
@@ -417,8 +429,14 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 #define USBD_AUDIO_EPOUT_ADDR                        0x03U
 #define USBD_AUDIO_EPOUT_FS_MPS                      512U
 #define USBD_AUDIO_EPOUT_HS_MPS                      1024U
-#define USBD_AUDIO_EPINCMD_FS_BINTERVAL              1U
-#define USBD_AUDIO_EPINCMD_HS_BINTERVAL              1U
+#define USBD_AUDIO_EPOUT_FS_BINTERVAL              1U
+#define USBD_AUDIO_EPOUT_HS_BINTERVAL              1U
+
+#define USBD_AUDIO_EPIN_ADDR                        0x83U
+#define USBD_AUDIO_EPIN_FS_MPS                      512U
+#define USBD_AUDIO_EPIN_HS_MPS                      1024U
+#define USBD_AUDIO_EPIN_FS_BINTERVAL              1U
+#define USBD_AUDIO_EPIN_HS_BINTERVAL              1U
 
 #ifndef USBD_CONFIG_STR_DESC_IDX
 #define USBD_CONFIG_STR_DESC_IDX                      0U

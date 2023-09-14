@@ -283,10 +283,11 @@ VOID USBX_APP_Device_Init(VOID)
 //  MX_USB_OTG_HS_PCD_Init();
 
   /* USER CODE BEGIN USB_Device_Init_PreTreatment_1 */
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x40);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x20);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x120);
   /* USER CODE END USB_Device_Init_PreTreatment_1 */
 
   /* initialize the device controller driver*/

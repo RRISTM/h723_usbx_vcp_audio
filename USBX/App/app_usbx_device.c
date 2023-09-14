@@ -33,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UX_AUDIO_FRAME_BUFFER_NB 10
+#define UX_AUDIO_FRAME_BUFFER_NB 4
 #define UX_AUDIO_MAX_FRAME_SIZE 4096
 /* USER CODE END PD */
 
@@ -181,7 +181,10 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
      if the application wishes to send data to the host, ux_device_class_audio_write_thread_entry should be used. */
   audio_stream_parameter[0].ux_device_class_audio_stream_parameter_thread_entry = ux_device_class_audio_read_thread_entry;
 
-
+#ifdef UX_DEVICE_CLASS_AUDIO_FEEDBACK_SUPPORT
+  audio_stream_parameter[audio_stream_index].ux_device_class_audio_stream_parameter_feedback_task_function
+    = ux_device_class_audio_feedback_task_function;
+#endif /* UX_DEVICE_CLASS_AUDIO_FEEDBACK_SUPPORT */
   /* Set the parameters for Audio device. */
 
   /* Set the number of streams. */
@@ -280,7 +283,7 @@ VOID USBX_APP_Device_Init(VOID)
 //  MX_USB_OTG_HS_PCD_Init();
 
   /* USER CODE BEGIN USB_Device_Init_PreTreatment_1 */
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x100);
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_HS, 0x180);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x20);

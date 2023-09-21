@@ -13,7 +13,8 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ux_device_class_audio.h"
+#include "ux_device_class_audio20.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -34,9 +35,11 @@ extern "C" {
 /* Exported functions prototypes ---------------------------------------------*/
 VOID USBD_AUDIO_Activate(VOID *audio_instance);
 VOID USBD_AUDIO_Deactivate(VOID *audio_instance);
-VOID USBD_AUDIO_Request(VOID *audio_instance,VOID *request);
-VOID USBD_AUDIO_Read_Done(VOID *audio_stream,ULONG actual_length);
-VOID USBD_AUDIO_Read_Change(VOID *audio_stream,ULONG bitrate);
+VOID USBD_AUDIO_Request(UX_DEVICE_CLASS_AUDIO *audio_instance, UX_SLAVE_TRANSFER *transfer);
+VOID USBD_AUDIO_Write_Done(VOID *audio_stream,ULONG actual_length);
+VOID USBD_AUDIO_Write_Change(VOID *audio_stream,ULONG alternate_setting);
+VOID USBD_AUDIO_SetControlValues(VOID);
+VOID USBD_AUDIO_Handle_SOF(VOID);
 /* USER CODE BEGIN EFP */
 
 /* USER CODE END EFP */

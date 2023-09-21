@@ -60,6 +60,7 @@ extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
 static VOID app_ux_device_thread_entry(ULONG thread_input);
 /* USER CODE BEGIN PFP */
 VOID USBX_APP_Device_Init(VOID);
+static UINT USBD_ChangeFunction(ULONG Device_State);
 /* USER CODE END PFP */
 
 /**
@@ -125,50 +126,51 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
                                  string_framework_length,
                                  language_id_framework,
                                  languge_id_framework_length,
-                                 UX_NULL) != UX_SUCCESS)
+                                 USBD_ChangeFunction) != UX_SUCCESS)
   {
     /* USER CODE BEGIN USBX_DEVICE_INITIALIZE_ERORR */
     return UX_ERROR;
     /* USER CODE END USBX_DEVICE_INITIALIZE_ERORR */
   }
 
-  /* Initialize the cdc acm class parameters for the device */
-  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate = USBD_CDC_ACM_Activate;
-  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_deactivate = USBD_CDC_ACM_Deactivate;
-  cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change = USBD_CDC_ACM_ParameterChange;
+  // /* Initialize the cdc acm class parameters for the device */
+  // cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate = USBD_CDC_ACM_Activate;
+  // cdc_acm_parameter.ux_slave_class_cdc_acm_instance_deactivate = USBD_CDC_ACM_Deactivate;
+  // cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change = USBD_CDC_ACM_ParameterChange;
 
-  /* USER CODE BEGIN CDC_ACM_PARAMETER */
+  // /* USER CODE BEGIN CDC_ACM_PARAMETER */
 
-  /* USER CODE END CDC_ACM_PARAMETER */
+  // /* USER CODE END CDC_ACM_PARAMETER */
 
-  /* Get cdc acm configuration number */
-  cdc_acm_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_CDC_ACM, 0);
+  // /* Get cdc acm configuration number */
+  // cdc_acm_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_CDC_ACM, 0);
 
-  /* Find cdc acm interface number */
-  cdc_acm_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_CDC_ACM, 0);
+  // /* Find cdc acm interface number */
+  // cdc_acm_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_CDC_ACM, 0);
 
-  /* Initialize the device cdc acm class */
-  if (ux_device_stack_class_register(_ux_system_slave_class_cdc_acm_name,
-                                     ux_device_class_cdc_acm_entry,
-                                     cdc_acm_configuration_number,
-                                     cdc_acm_interface_number,
-                                     &cdc_acm_parameter) != UX_SUCCESS)
-  {
-    /* USER CODE BEGIN USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
-    return UX_ERROR;
-    /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
-  }
+  // /* Initialize the device cdc acm class */
+  // if (ux_device_stack_class_register(_ux_system_slave_class_cdc_acm_name,
+  //                                    ux_device_class_cdc_acm_entry,
+  //                                    cdc_acm_configuration_number,
+  //                                    cdc_acm_interface_number,
+  //                                    &cdc_acm_parameter) != UX_SUCCESS)
+  // {
+  //   /* USER CODE BEGIN USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
+  //   return UX_ERROR;
+  //   /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
+  // }
 
   /*audio*/
-
+  /* Initialize audio playback control values */
+  USBD_AUDIO_SetControlValues();
   /* Set the parameters for Audio streams. */
   /* Set the application-defined callback that is invoked when the
      host requests a change to the alternate setting. */
-  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_change = USBD_AUDIO_Read_Change;
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_change = USBD_AUDIO_Write_Change;
 
   /* Set the application-defined callback that is invoked whenever
      a USB packet (audio frame) is sent to or received from the host. */
-  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_frame_done = USBD_AUDIO_Read_Done;
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_callbacks.ux_device_class_audio_stream_frame_done = USBD_AUDIO_Write_Done;
 
   /* Set the number of audio frame buffers in the FIFO. */
   audio_stream_parameter[0].ux_device_class_audio_stream_parameter_max_frame_buffer_nb = UX_AUDIO_FRAME_BUFFER_NB;
@@ -179,7 +181,7 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   /* Set the internally-defined audio processing thread entry pointer. If the application wishes to receive audio from the host
      (which is the case in this example), ux_device_class_audio_read_thread_entry should be used;
      if the application wishes to send data to the host, ux_device_class_audio_write_thread_entry should be used. */
-  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_thread_entry = ux_device_class_audio_read_thread_entry;
+  audio_stream_parameter[0].ux_device_class_audio_stream_parameter_thread_entry = ux_device_class_audio_write_thread_entry;
 
 #ifdef UX_DEVICE_CLASS_AUDIO_FEEDBACK_SUPPORT
   audio_stream_parameter[audio_stream_index].ux_device_class_audio_stream_parameter_feedback_task_function
@@ -287,7 +289,7 @@ VOID USBX_APP_Device_Init(VOID)
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 0, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 1, 0x10);
   HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x20);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 2, 0x120);
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_HS, 3, 0x200);
   /* USER CODE END USB_Device_Init_PreTreatment_1 */
 
   /* initialize the device controller driver*/
@@ -295,5 +297,89 @@ VOID USBX_APP_Device_Init(VOID)
 
   /* USER CODE BEGIN USB_Device_Init_PostTreatment */
   /* USER CODE END USB_Device_Init_PostTreatment */
+}
+
+/**
+  * @brief  USBD_ChangeFunction
+  *         This function is called when the device state changes.
+  * @param  Device_State: USB Device State
+  * @retval status
+  */
+static UINT USBD_ChangeFunction(ULONG Device_State)
+{
+   UINT status = UX_SUCCESS;
+
+  /* USER CODE BEGIN USBD_ChangeFunction0 */
+
+  /* USER CODE END USBD_ChangeFunction0 */
+
+  switch (Device_State)
+  {
+    case UX_DEVICE_ATTACHED:
+
+      /* USER CODE BEGIN UX_DEVICE_ATTACHED */
+
+      /* USER CODE END UX_DEVICE_ATTACHED */
+
+      break;
+
+    case UX_DEVICE_REMOVED:
+
+      /* USER CODE BEGIN UX_DEVICE_REMOVED */
+
+      /* USER CODE END UX_DEVICE_REMOVED */
+
+      break;
+
+    case UX_DCD_STM32_DEVICE_CONNECTED:
+
+      /* USER CODE BEGIN UX_DCD_STM32_DEVICE_CONNECTED */
+
+      /* USER CODE END UX_DCD_STM32_DEVICE_CONNECTED */
+
+      break;
+
+    case UX_DCD_STM32_DEVICE_DISCONNECTED:
+
+      /* USER CODE BEGIN UX_DCD_STM32_DEVICE_DISCONNECTED */
+
+      /* USER CODE END UX_DCD_STM32_DEVICE_DISCONNECTED */
+
+      break;
+
+    case UX_DCD_STM32_DEVICE_SUSPENDED:
+
+      /* USER CODE BEGIN UX_DCD_STM32_DEVICE_SUSPENDED */
+
+      /* USER CODE END UX_DCD_STM32_DEVICE_SUSPENDED */
+
+      break;
+
+    case UX_DCD_STM32_DEVICE_RESUMED:
+
+      /* USER CODE BEGIN UX_DCD_STM32_DEVICE_RESUMED */
+
+      /* USER CODE END UX_DCD_STM32_DEVICE_RESUMED */
+
+      break;
+
+    case UX_DCD_STM32_SOF_RECEIVED:
+
+      /* USER CODE BEGIN UX_DCD_STM32_SOF_RECEIVED */
+      USBD_AUDIO_Handle_SOF();
+      /* USER CODE END UX_DCD_STM32_SOF_RECEIVED */
+
+      break;
+
+    default:
+
+      /* USER CODE BEGIN DEFAULT */
+
+      /* USER CODE END DEFAULT */
+
+      break;
+
+
+  }
 }
 /* USER CODE END 1 */

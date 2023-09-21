@@ -379,7 +379,7 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 /* USER CODE END Private_defines */
 
 #define USBD_VID                                      1155
-#define USBD_PID                                      22293
+#define USBD_PID                                      22297
 #define USBD_LANGID_STRING                            1033
 #define USBD_MANUFACTURER_STRING                      "STMicroelectronics"
 #define USBD_PRODUCT_STRING                           "STM32 USB Device"
@@ -394,6 +394,12 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 #define USBD_EP_TYPE_ISOC                             0x01U
 #define USBD_EP_TYPE_BULK                             0x02U
 #define USBD_EP_TYPE_INTR                             0x03U
+
+#define USBD_EP_ATTR_ISOC_NOSYNC                      0x00U
+#define USBD_EP_ATTR_ISOC_ASYNC                       0x04U
+#define USBD_EP_ATTR_ISOC_ADAPT                       0x08U
+#define USBD_EP_ATTR_ISOC_SYNC                        0x0CU
+#define USBD_EP_ATTR_ISOC_FEEDBACK                    0x10U
 
 #define USBD_FULL_SPEED                               0x00U
 #define USBD_HIGH_SPEED                               0x01U
@@ -425,15 +431,15 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 
 /* Device AUDIO Class*/
 
-/* Device CDC-ACM Class */
+/* Device AUDIO Class */
 #define USBD_AUDIO_EPOUT_ADDR                        0x03U
-#define USBD_AUDIO_EPOUT_FS_MPS                      512U
+#define USBD_AUDIO_EPOUT_FS_MPS                      1023U
 #define USBD_AUDIO_EPOUT_HS_MPS                      1024U
 #define USBD_AUDIO_EPOUT_FS_BINTERVAL              1U
 #define USBD_AUDIO_EPOUT_HS_BINTERVAL              1U
 
 #define USBD_AUDIO_EPIN_ADDR                        0x83U
-#define USBD_AUDIO_EPIN_FS_MPS                      512U
+#define USBD_AUDIO_EPIN_FS_MPS                      1023U
 #define USBD_AUDIO_EPIN_HS_MPS                      1024U
 #define USBD_AUDIO_EPIN_FS_BINTERVAL              1U
 #define USBD_AUDIO_EPIN_HS_BINTERVAL              1U

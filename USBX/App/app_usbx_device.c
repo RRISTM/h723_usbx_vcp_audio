@@ -54,6 +54,8 @@ static UX_DEVICE_CLASS_AUDIO_STREAM_PARAMETER audio_stream_parameter[1];
 static UX_DEVICE_CLASS_AUDIO_PARAMETER audio_parameter;
 
 extern PCD_HandleTypeDef hpcd_USB_OTG_HS;
+
+static TX_THREAD ux_cdc_read_thread;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -133,31 +135,45 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     /* USER CODE END USBX_DEVICE_INITIALIZE_ERORR */
   }
 
-  // /* Initialize the cdc acm class parameters for the device */
-  // cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate = USBD_CDC_ACM_Activate;
-  // cdc_acm_parameter.ux_slave_class_cdc_acm_instance_deactivate = USBD_CDC_ACM_Deactivate;
-  // cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change = USBD_CDC_ACM_ParameterChange;
+  /* Initialize the cdc acm class parameters for the device */
+  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_activate = USBD_CDC_ACM_Activate;
+  cdc_acm_parameter.ux_slave_class_cdc_acm_instance_deactivate = USBD_CDC_ACM_Deactivate;
+  cdc_acm_parameter.ux_slave_class_cdc_acm_parameter_change = USBD_CDC_ACM_ParameterChange;
 
-  // /* USER CODE BEGIN CDC_ACM_PARAMETER */
+  /* USER CODE BEGIN CDC_ACM_PARAMETER */
 
-  // /* USER CODE END CDC_ACM_PARAMETER */
+  /* USER CODE END CDC_ACM_PARAMETER */
 
-  // /* Get cdc acm configuration number */
-  // cdc_acm_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_CDC_ACM, 0);
+  /* Get cdc acm configuration number */
+  cdc_acm_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_CDC_ACM, 0);
 
-  // /* Find cdc acm interface number */
-  // cdc_acm_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_CDC_ACM, 0);
+  /* Find cdc acm interface number */
+  cdc_acm_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_CDC_ACM, 0);
 
-  // /* Initialize the device cdc acm class */
-  // if (ux_device_stack_class_register(_ux_system_slave_class_cdc_acm_name,
-  //                                    ux_device_class_cdc_acm_entry,
-  //                                    cdc_acm_configuration_number,
-  //                                    cdc_acm_interface_number,
-  //                                    &cdc_acm_parameter) != UX_SUCCESS)
+  /* Initialize the device cdc acm class */
+  if (ux_device_stack_class_register(_ux_system_slave_class_cdc_acm_name,
+                                     ux_device_class_cdc_acm_entry,
+                                     cdc_acm_configuration_number,
+                                     cdc_acm_interface_number,
+                                     &cdc_acm_parameter) != UX_SUCCESS)
+  {
+    /* USER CODE BEGIN USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
+    return UX_ERROR;
+    /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
+  }
+
+  // if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != TX_SUCCESS)
   // {
-  //   /* USER CODE BEGIN USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
-  //   return UX_ERROR;
-  //   /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
+  //   return TX_POOL_ERROR;
+  // }
+
+  // /* Create the usbx cdc acm read thread */
+  // if (tx_thread_create(&ux_cdc_read_thread, "cdc_acm_read_usbx_app_thread_entry",
+  //                      usbx_cdc_acm_read_thread_entry, 1, pointer,
+  //                      1024, 20, 20, TX_NO_TIME_SLICE,
+  //                      TX_AUTO_START) != TX_SUCCESS)
+  // {
+  //   return TX_THREAD_ERROR;
   // }
 
   /*audio*/

@@ -46,6 +46,8 @@
 
 static ULONG cdc_acm_interface_number;
 static ULONG cdc_acm_configuration_number;
+static ULONG audio_interface_number;
+static ULONG audio_configuration_number;
 static UX_SLAVE_CLASS_CDC_ACM_PARAMETER cdc_acm_parameter;
 static TX_THREAD ux_device_app_thread;
 
@@ -162,19 +164,19 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
     /* USER CODE END USBX_DEVICE_CDC_ACM_REGISTER_ERORR */
   }
 
-  // if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != TX_SUCCESS)
-  // {
-  //   return TX_POOL_ERROR;
-  // }
+  if (tx_byte_allocate(byte_pool, (VOID **) &pointer, 1024, TX_NO_WAIT) != TX_SUCCESS)
+  {
+    return TX_POOL_ERROR;
+  }
 
-  // /* Create the usbx cdc acm read thread */
-  // if (tx_thread_create(&ux_cdc_read_thread, "cdc_acm_read_usbx_app_thread_entry",
-  //                      usbx_cdc_acm_read_thread_entry, 1, pointer,
-  //                      1024, 20, 20, TX_NO_TIME_SLICE,
-  //                      TX_AUTO_START) != TX_SUCCESS)
-  // {
-  //   return TX_THREAD_ERROR;
-  // }
+  /* Create the usbx cdc acm read thread */
+  if (tx_thread_create(&ux_cdc_read_thread, "cdc_acm_read_usbx_app_thread_entry",
+                       usbx_cdc_acm_read_thread_entry, 1, pointer,
+                       1024, 20, 20, TX_NO_TIME_SLICE,
+                       TX_AUTO_START) != TX_SUCCESS)
+  {
+    return TX_THREAD_ERROR;
+  }
 
   /*audio*/
   /* Initialize audio playback control values */
@@ -227,8 +229,14 @@ UINT MX_USBX_Device_Init(VOID *memory_ptr)
   */
   audio_parameter.ux_device_class_audio_parameter_callbacks.ux_device_class_audio_control_process = USBD_AUDIO_Request;
 
+  /* Get cdc acm configuration number */
+  audio_configuration_number = USBD_Get_Configuration_Number(CLASS_TYPE_AUDIO, 0);
+
+  /* Find cdc acm interface number */
+  audio_interface_number = USBD_Get_Interface_Number(CLASS_TYPE_AUDIO, 0);
+
   /* Initialize the device Audio class. This class owns interfaces starting with 0. */
-  status = ux_device_stack_class_register(_ux_system_slave_class_audio_name, ux_device_class_audio_entry, 1, 0, &audio_parameter);
+  status = ux_device_stack_class_register(_ux_system_slave_class_audio_name, ux_device_class_audio_entry, audio_configuration_number, audio_interface_number, &audio_parameter);
   if (status != UX_SUCCESS)
     return;
 

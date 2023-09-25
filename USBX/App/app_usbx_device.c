@@ -33,8 +33,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define UX_AUDIO_FRAME_BUFFER_NB 4
-#define UX_AUDIO_MAX_FRAME_SIZE 4096
+#define UX_AUDIO_FRAME_BUFFER_NB 2
+#define UX_AUDIO_MAX_FRAME_SIZE 1024
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/

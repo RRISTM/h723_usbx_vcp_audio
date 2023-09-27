@@ -31,7 +31,7 @@ UX_DEVICE_CLASS_AUDIO20_CONTROL audio_control[1];
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
-
+uint16_t fillArray(uint16_t* buffer,uint16_t size,uint16_t firstSample);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -95,18 +95,26 @@ UINT status  = UX_SUCCESS;
 
 }
 
-VOID fillArray(uint16_t* buffer,uint16_t size,uint16_t increment){
-
+uint16_t fillArray(uint16_t* buffer,uint16_t size,uint16_t firstSample){
+	uint32_t i;
+	for(i=0;i<(size/2);i++){
+		buffer[i]=firstSample+i;
+	}
+	return buffer[(size/2)-1] + 1;
 }
 
 uint16_t buffer[4096]={1};
+uint16_t lastSample=0;
 VOID USBD_AUDIO_Write_Done(VOID *audio_stream,ULONG actual_length){
-	UINT retVal =  ux_device_class_audio_frame_write(audio_stream,buffer,192);
+	UINT retVal =  ux_device_class_audio_frame_write(audio_stream,buffer,768);
 	 HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_0);
   if (retVal!=UX_SUCCESS){
     __NOP();
+  }else{
+	  lastSample=fillArray(buffer, 768, lastSample);
+
   }
-	buffer[0]++;
+	// buffer[0]++;
 
 }
 
@@ -116,13 +124,14 @@ VOID USBD_AUDIO_Write_Change(VOID *audio_stream,ULONG alternate_setting){
   {
     return;
   }
+  lastSample=fillArray(buffer, 768, lastSample);
   //     /* Start reception (stream opened) */
-  UINT retVal =ux_device_class_audio_frame_write(audio_stream,buffer,192);
+  UINT retVal =ux_device_class_audio_frame_write(audio_stream,buffer,768);
    if (retVal!=UX_SUCCESS){
      __NOP();
    }
    ux_device_class_audio_transmission_start(audio_stream);
-   buffer[0]++;
+  //  buffer[0]++;
 }
 
 

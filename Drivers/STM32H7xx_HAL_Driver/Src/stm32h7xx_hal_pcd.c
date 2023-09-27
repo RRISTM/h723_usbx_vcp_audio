@@ -1439,10 +1439,10 @@ void HAL_PCD_IRQHandler(PCD_HandleTypeDef *hpcd)
         if ((hpcd->IN_ep[epnum].type == EP_TYPE_ISOC) &&
             ((RegVal & USB_OTG_DIEPCTL_EPENA) == USB_OTG_DIEPCTL_EPENA))
         {
-          hpcd->IN_ep[epnum].is_iso_incomplete = 1U;
+					hpcd->IN_ep[epnum].is_iso_incomplete = 1U;
 
           /* Abort current transaction and disable the EP */
-          (void)HAL_PCD_EP_Abort(hpcd, (uint8_t)(epnum | 0x80U));
+         // (void)HAL_PCD_EP_Abort(hpcd, (uint8_t)(epnum | 0x80U));
         }
       }
 

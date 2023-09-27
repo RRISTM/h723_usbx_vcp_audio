@@ -1,25 +1,7 @@
-/* USER CODE BEGIN Header */
-/**
-  ******************************************************************************
-  * @file    ux_device_cdc_acm.h
-  * @author  MCD Application Team
-  * @brief   USBX Device CDC ACM applicative header file
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2020-2021 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
 /* USER CODE END Header */
 /* Define to prevent recursive inclusion -------------------------------------*/
-#ifndef __UX_DEVICE_CDC_ACM_H__
-#define __UX_DEVICE_CDC_ACM_H__
+#ifndef __UX_DEVICE_AUDIO_H__
+#define __UX_DEVICE_AUDIO_H__
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,11 +9,12 @@ extern "C" {
 
 /* Includes ------------------------------------------------------------------*/
 #include "ux_api.h"
-#include "ux_device_class_cdc_acm.h"
+#include "ux_device_class_audio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ux_device_class_audio.h"
+#include "ux_device_class_audio20.h"
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
@@ -50,12 +33,15 @@ extern "C" {
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
-VOID USBD_CDC_ACM_Activate(VOID *cdc_acm_instance);
-VOID USBD_CDC_ACM_Deactivate(VOID *cdc_acm_instance);
-VOID USBD_CDC_ACM_ParameterChange(VOID *cdc_acm_instance);
-
+VOID USBD_AUDIO_Activate(VOID *audio_instance);
+VOID USBD_AUDIO_Deactivate(VOID *audio_instance);
+VOID USBD_AUDIO_Request(UX_DEVICE_CLASS_AUDIO *audio_instance, UX_SLAVE_TRANSFER *transfer);
+VOID USBD_AUDIO_Write_Done(VOID *audio_stream,ULONG actual_length);
+VOID USBD_AUDIO_Write_Change(VOID *audio_stream,ULONG alternate_setting);
+VOID USBD_AUDIO_SetControlValues(VOID);
+VOID USBD_AUDIO_Handle_SOF(VOID);
 /* USER CODE BEGIN EFP */
-VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input);
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -70,4 +56,4 @@ VOID usbx_cdc_acm_read_thread_entry(ULONG thread_input);
 #ifdef __cplusplus
 }
 #endif
-#endif  /* __UX_DEVICE_CDC_ACM_H__ */
+#endif  /* __UX_DEVICE_AUDIO_H__ */

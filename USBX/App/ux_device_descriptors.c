@@ -46,6 +46,7 @@ USBD_DevClassHandleTypeDef  USBD_Device_FS, USBD_Device_HS;
 
 uint8_t UserClassInstance[USBD_MAX_CLASS_INTERFACES] = {
   CLASS_TYPE_CDC_ACM,
+  CLASS_TYPE_AUDIO
 };
 
 /* The generic device descriptor buffer that will be filled by builder
@@ -126,7 +127,7 @@ static void USBD_FrameWork_CDCDesc(USBD_DevClassHandleTypeDef *pdev,
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED == 1U */
 
 /* USER CODE BEGIN PFP */
-
+static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t pConf, uint32_t *Sze);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -444,6 +445,12 @@ static uint8_t *USBD_Device_Framework_Builder(USBD_DevClassHandleTypeDef *pdev,
       pDevDesc->bDeviceSubClass = 0x02;
       pDevDesc->bDeviceProtocol = 0x00;
     }
+    else if (UserClassInstance[0] == CLASS_TYPE_AUDIO)
+    {
+      pDevDesc->bDeviceClass = 0xEF;
+      pDevDesc->bDeviceSubClass = 0x02;
+      pDevDesc->bDeviceProtocol = 0x01;
+    }
   }
 
   return pDevFrameWorkDesc;
@@ -565,7 +572,35 @@ uint8_t  USBD_FrameWork_AddToConfDesc(USBD_DevClassHandleTypeDef *pdev, uint8_t 
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED */
 
     /* USER CODE FrameWork_AddToConfDesc_1 */
+/*AUDIO */
+    case CLASS_TYPE_AUDIO:
 
+      /* Find the first available interface slot and Assign number of interfaces */
+      interface = USBD_FrameWork_FindFreeIFNbr(pdev);
+      pdev->tclasslist[pdev->classId].NumIf = 2U;
+      pdev->tclasslist[pdev->classId].Ifs[0] = interface;
+      pdev->tclasslist[pdev->classId].Ifs[1] = (uint8_t)(interface + 1U);
+
+      /* Assign endpoint numbers */
+      pdev->tclasslist[pdev->classId].NumEps = 1U;  /*  EP_IN */
+
+      /* Check the current speed to assign endpoints */
+      if (Speed == USBD_HIGH_SPEED)
+      {
+        /* Assign IN Endpoint */
+        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPIN_ADDR,
+                                USBD_EP_TYPE_ISOC|USBD_EP_ATTR_ISOC_SYNC, USBD_AUDIO_EPIN_HS_MPS);
+      }
+      else
+      {
+        /* Assign IN Endpoint */
+        USBD_FrameWork_AssignEp(pdev, USBD_AUDIO_EPIN_ADDR,
+                                USBD_EP_TYPE_ISOC|USBD_EP_ATTR_ISOC_SYNC, USBD_AUDIO_EPIN_FS_MPS);
+      }
+
+      /* Configure and Append the Descriptor */
+      USBD_FrameWork_AUDIODesc(pdev, (uint32_t)pCmpstConfDesc, &pdev->CurrConfDescSz);
+    break;
     /* USER CODE FrameWork_AddToConfDesc_1 */
 
     default:
@@ -759,5 +794,168 @@ static void USBD_FrameWork_CDCDesc(USBD_DevClassHandleTypeDef *pdev,
 #endif /* USBD_CDC_ACM_CLASS_ACTIVATED == 1 */
 
 /* USER CODE BEGIN 1 */
+/**
+  * @brief  USBD_FrameWork_CDCDesc
+  *         Configure and Append the CDC Descriptor
+  * @param  pdev: device instance
+  * @param  pConf: Configuration descriptor pointer
+  * @param  Sze: pointer to the current configuration descriptor size
+  * @retval None
+  */
+static void USBD_FrameWork_AUDIODesc(USBD_DevClassHandleTypeDef *pdev, uint32_t pConf, uint32_t *Sze)
+{
+  static USBD_IfDescTypedef               *pIfDesc;
+  static USBD_EpDescTypedef               *pEpDesc;
+  static USBD_AUDIOHeaderFuncDescTypedef    *pHeadDesc;
+  static USBD_AUDIOClockSourceDescTypedef  *pClockDesc;
+  static USBD_AUDIOInputTerminalDescTypedef *pInputTerminalDesc;
+  static USBD_AUDIOFeatureUnitDescTypedef *pFeatureUnitDesc;
+  static USBD_AUDIOOutputTerminalDescTypedef *pOutputTerminalDesc;
+  static USBD_AUDIO20ASInterfaceDescTypedef *pAsInterfaceDesc;
+  static USBD_AUDIO20ASFormatTypeDescTypedef *pAsFormatTypeDesc;
+  static USBD_AUDIO20ASEndpointDescTypedef *pAsEndpointDesc;
 
+  static USBD_CDCCallMgmFuncDescTypedef   *pCallMgmDesc;
+  static USBD_CDCACMFuncDescTypedef       *pACMDesc;
+  static USBD_CDCUnionFuncDescTypedef     *pUnionDesc;
+#if USBD_COMPOSITE_USE_IAD == 1
+  static USBD_IadDescTypedef              *pIadDesc;
+#endif /* USBD_COMPOSITE_USE_IAD == 1 */
+
+#if USBD_COMPOSITE_USE_IAD == 1
+  pIadDesc = ((USBD_IadDescTypedef *)(pConf + *Sze));
+  pIadDesc->bLength = (uint8_t)sizeof(USBD_IadDescTypedef);
+  pIadDesc->bDescriptorType = USB_DESC_TYPE_IAD; /* IAD descriptor */
+  pIadDesc->bFirstInterface = pdev->tclasslist[pdev->classId].Ifs[0];
+  pIadDesc->bInterfaceCount = 2U;    /* 2 interfaces */
+  pIadDesc->bFunctionClass = 0x01U;
+  pIadDesc->bFunctionSubClass = 0x00U;
+  pIadDesc->bFunctionProtocol = 0x20U;
+  pIadDesc->iFunction = 0; /* String Index */
+  *Sze += (uint32_t)sizeof(USBD_IadDescTypedef);
+#endif /* USBD_COMPOSITE_USE_IAD == 1 */
+
+  /* Control Interface Descriptor */
+  __USBD_FRAMEWORK_SET_IF(pdev->tclasslist[pdev->classId].Ifs[0], 0U, 0U, 0x01,0x01U, 0x020U, 0U);
+
+  /* Header Functional Descriptor*/
+  pHeadDesc = ((USBD_AUDIOHeaderFuncDescTypedef *)((uint32_t)pConf + *Sze));
+  pHeadDesc->bLength = 0x09U;
+  pHeadDesc->bDescriptorType = 0x24U;
+  pHeadDesc->bDescriptorSubtype = 0x01U;
+  pHeadDesc->bcdADC = 0x0200;//2.0
+  pHeadDesc->bCategory =0x03;
+  pHeadDesc->wTotalLength =64;//check
+  pHeadDesc->bmControls =0;
+  *Sze += (uint32_t)sizeof(USBD_AUDIOHeaderFuncDescTypedef);
+
+  /* Audio clock source Descriptor*/
+  pClockDesc = ((USBD_AUDIOClockSourceDescTypedef *)((uint32_t)pConf + *Sze));
+  pClockDesc->bLength=8;
+  pClockDesc->bDescriptorType=0x24;
+  pClockDesc->bDescriptorSubtype=0xA;
+  pClockDesc->bClockID=25;
+  pClockDesc->bmAttributes=0x01;
+  pClockDesc->bmControls=0x01;
+  pClockDesc->bAssocTerminal=0x0;
+  pClockDesc->iClockSource=0;
+
+  *Sze += (uint32_t)sizeof(USBD_AUDIOClockSourceDescTypedef);
+
+
+  /* Audio input terminal Descriptor*/
+  pInputTerminalDesc= ((USBD_AUDIOInputTerminalDescTypedef *)((uint32_t)pConf + *Sze));
+  pInputTerminalDesc->bLength=17;
+  pInputTerminalDesc->bDescriptorType=0x24;
+  pInputTerminalDesc->bDescriptorSubtype=0x2;
+  pInputTerminalDesc->bTerminalID=17;
+  pInputTerminalDesc->wTerminalType =0x0201;
+  pInputTerminalDesc->bAssocTerminal=0x0;
+  pInputTerminalDesc->bCSourceID =25;
+  pInputTerminalDesc->bNrChannels =2;
+  pInputTerminalDesc->bmChannelConfig=0x03;
+  pInputTerminalDesc->iChannelNames=0;
+  pInputTerminalDesc->bmControls=0x0;
+  pInputTerminalDesc->iTerminal=0; 
+
+  *Sze += (uint32_t)sizeof(USBD_AUDIOInputTerminalDescTypedef);
+
+  /* Audio feature unit Descriptor*/
+  pFeatureUnitDesc= ((USBD_AUDIOFeatureUnitDescTypedef *)((uint32_t)pConf + *Sze));
+  pFeatureUnitDesc->bLength=18;
+  pFeatureUnitDesc->bDescriptorType=0x24;
+  pFeatureUnitDesc->bDescriptorSubtype=0x6;
+  pFeatureUnitDesc->bUnitID=21;
+  pFeatureUnitDesc->bSourceID=17;
+  pFeatureUnitDesc->bmaControls0=0xF;//check
+  pFeatureUnitDesc->bmaControls1=0x0;
+  pFeatureUnitDesc->bmaControls2=0x0;
+  pFeatureUnitDesc->iFeature=0; 
+
+*Sze += (uint32_t)sizeof(USBD_AUDIOFeatureUnitDescTypedef);
+
+  /* Audio output terminal Descriptor*/
+pOutputTerminalDesc= ((USBD_AUDIOOutputTerminalDescTypedef *)((uint32_t)pConf + *Sze));
+
+  pOutputTerminalDesc->bLength=12;
+  pOutputTerminalDesc->bDescriptorType=0x24;
+  pOutputTerminalDesc->bDescriptorSubtype=0x03;
+  pOutputTerminalDesc->bTerminalID=19;
+  pOutputTerminalDesc->wTerminalType=0x0101;
+  pOutputTerminalDesc->bAssocTerminal=0x0;
+  pOutputTerminalDesc->bSourceID=21;
+  pOutputTerminalDesc->bCSourceID=25;
+  pOutputTerminalDesc->bmControls=0x0;
+  pOutputTerminalDesc->iTerminal=0; 
+
+*Sze += (uint32_t)sizeof(USBD_AUDIOOutputTerminalDescTypedef);
+
+  __USBD_FRAMEWORK_SET_IF(pdev->tclasslist[pdev->classId].Ifs[1], 0U, 0U, 0x01,0x02U, 0x020U, 0U);
+
+  __USBD_FRAMEWORK_SET_IF(pdev->tclasslist[pdev->classId].Ifs[1], 1U, 1U, 0x01,0x02U, 0x020U, 0U);
+  
+
+  /* Audio 20 AS Interface Descriptor*/
+  pAsInterfaceDesc= ((USBD_AUDIO20ASInterfaceDescTypedef *)((uint32_t)pConf + *Sze));
+  pAsInterfaceDesc->bLength=16;
+  pAsInterfaceDesc->bDescriptorType=0x24;
+  pAsInterfaceDesc->bDescriptorSubtype=0x1;
+  pAsInterfaceDesc->bTerminalLink=19;
+  pAsInterfaceDesc->bmControls=0x0;
+  pAsInterfaceDesc->bFormatType=0x1;
+  pAsInterfaceDesc->bmFormats=0x1;
+  pAsInterfaceDesc->bNrChannels=2;
+  pAsInterfaceDesc->bmChannelConfig=0x03;
+  pAsInterfaceDesc->iChannelNames=0;
+
+*Sze += (uint32_t)sizeof(USBD_AUDIO20ASInterfaceDescTypedef);
+
+  /* Audio 20 as format type Descriptor*/
+  pAsFormatTypeDesc= ((USBD_AUDIO20ASFormatTypeDescTypedef *)((uint32_t)pConf + *Sze));
+  pAsFormatTypeDesc->bLength=6;
+  pAsFormatTypeDesc->bDescriptorType=0x24;
+  pAsFormatTypeDesc->bDescriptorSubtype=0x2;
+  pAsFormatTypeDesc->bFormatType=0x1;
+  pAsFormatTypeDesc->bSubslotSize=2;
+  pAsFormatTypeDesc->bBitResolution=16;
+
+*Sze += (uint32_t)sizeof(USBD_AUDIO20ASFormatTypeDescTypedef);
+
+  /* Append Endpoint descriptor to Configuration descriptor */
+  __USBD_FRAMEWORK_SET_EP((pdev->tclasslist[pdev->classId].Eps[0].add),(pdev->tclasslist[pdev->classId].Eps[0].type),(uint16_t)(pdev->tclasslist[pdev->classId].Eps[0].size),(0x1U), (0x01U));
+
+  pAsEndpointDesc= ((USBD_AUDIO20ASEndpointDescTypedef *)((uint32_t)pConf + *Sze));
+  pAsEndpointDesc->bLength=8;
+  pAsEndpointDesc->bDescriptorType=0x25;
+  pAsEndpointDesc->bDescriptorSubtype=0x1;
+  pAsEndpointDesc->bmAttributes=0;
+  pAsEndpointDesc->bmControl=0;
+  pAsEndpointDesc->bLockDelayUnits=0;
+  pAsEndpointDesc->wLockDelay=0;
+  *Sze += (uint32_t)sizeof(USBD_AUDIO20ASEndpointDescTypedef);
+
+  /* Update Config Descriptor and IAD descriptor */
+  ((USBD_ConfigDescTypedef *)pConf)->bNumInterfaces += 2U;
+  ((USBD_ConfigDescTypedef *)pConf)->wDescriptorLength = *Sze;
+}
 /* USER CODE END 1 */

@@ -47,7 +47,7 @@ extern "C" {
 #define USBD_COMPOSITE_USE_IAD                         1U
 #define USBD_DEVICE_FRAMEWORK_BUILDER_ENABLED          1U
 
-#define USBD_FRAMEWORK_MAX_DESC_SZ                     200U
+#define USBD_FRAMEWORK_MAX_DESC_SZ                     400U
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
@@ -67,6 +67,7 @@ typedef enum
   CLASS_TYPE_CCID     = 8,
   CLASS_TYPE_PRINTER  = 9,
   CLASS_TYPE_RNDIS    = 10,
+  CLASS_TYPE_AUDIO    = 11
 } USBD_CompositeClassTypeDef;
 
 /* USB Endpoint handle structure */
@@ -245,6 +246,117 @@ typedef struct
 
 #endif /* (USBD_CDC_ACM_CLASS_ACTIVATED == 1) || (USBD_RNDIS_CLASS_ACTIVATED == 1)  || (USBD_CDC_ECM_CLASS_ACTIVATED == 1)*/
 
+
+typedef struct
+{
+  /* Header Functional Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint16_t bcdADC;
+  uint8_t bCategory;
+  uint16_t wTotalLength;
+  uint8_t bmControls;
+} __PACKED USBD_AUDIOHeaderFuncDescTypedef;
+
+typedef struct
+{
+  /* Audio clock source Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bClockID;
+  uint8_t bmAttributes;
+  uint8_t bmControls;
+  uint8_t bAssocTerminal;
+  uint8_t iClockSource;
+} __PACKED USBD_AUDIOClockSourceDescTypedef;
+
+typedef struct
+{
+  /* Audio input terminal Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bTerminalID; 
+  uint16_t wTerminalType ;
+  uint8_t bAssocTerminal;
+  uint8_t bCSourceID ;
+  uint8_t bNrChannels ;
+  uint32_t bmChannelConfig;
+  uint8_t iChannelNames;
+  uint16_t bmControls;
+  uint8_t iTerminal; 
+} __PACKED USBD_AUDIOInputTerminalDescTypedef;
+
+typedef struct
+{
+  /* Audio feature unit Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bUnitID;
+  uint8_t bSourceID; 
+  uint32_t bmaControls0;
+  uint32_t bmaControls1;
+  uint32_t bmaControls2;
+  uint8_t  iFeature; 
+} __PACKED USBD_AUDIOFeatureUnitDescTypedef;
+
+typedef struct
+{
+  /* Audio output terminal Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bTerminalID; 
+  uint16_t wTerminalType;
+  uint8_t bAssocTerminal;
+  uint8_t bSourceID;
+  uint8_t bCSourceID;
+  uint16_t bmControls;
+  uint8_t iTerminal; 
+} __PACKED USBD_AUDIOOutputTerminalDescTypedef;
+
+typedef struct
+{
+  /* Audio 20 AS Interface Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bTerminalLink;
+  uint8_t bmControls;
+  uint8_t bFormatType;
+  uint32_t bmFormats;
+  uint8_t bNrChannels;
+  uint32_t bmChannelConfig;
+  uint8_t iChannelNames;
+} __PACKED USBD_AUDIO20ASInterfaceDescTypedef;
+
+typedef struct
+{
+  /* Audio 20 as format type Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bFormatType;
+  uint8_t bSubslotSize;
+  uint8_t bBitResolution;
+} __PACKED USBD_AUDIO20ASFormatTypeDescTypedef;
+
+typedef struct
+{
+  /* Audio 20 as format type Descriptor*/
+  uint8_t bLength;
+  uint8_t bDescriptorType;
+  uint8_t bDescriptorSubtype;
+  uint8_t bmAttributes;
+  uint8_t bmControl;
+  uint8_t bLockDelayUnits;
+  uint16_t wLockDelay;
+} __PACKED USBD_AUDIO20ASEndpointDescTypedef;
+
+
 /* Private defines -----------------------------------------------------------*/
 /* USER CODE BEGIN Private_defines */
 
@@ -267,7 +379,7 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 /* USER CODE END Private_defines */
 
 #define USBD_VID                                      1155
-#define USBD_PID                                      22288
+#define USBD_PID                                      22297
 #define USBD_LANGID_STRING                            1033
 #define USBD_MANUFACTURER_STRING                      "STMicroelectronics"
 #define USBD_PRODUCT_STRING                           "STM32 USB Device"
@@ -282,6 +394,12 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 #define USBD_EP_TYPE_ISOC                             0x01U
 #define USBD_EP_TYPE_BULK                             0x02U
 #define USBD_EP_TYPE_INTR                             0x03U
+
+#define USBD_EP_ATTR_ISOC_NOSYNC                      0x00U
+#define USBD_EP_ATTR_ISOC_ASYNC                       0x04U
+#define USBD_EP_ATTR_ISOC_ADAPT                       0x08U
+#define USBD_EP_ATTR_ISOC_SYNC                        0x0CU
+#define USBD_EP_ATTR_ISOC_FEEDBACK                    0x10U
 
 #define USBD_FULL_SPEED                               0x00U
 #define USBD_HIGH_SPEED                               0x01U
@@ -310,6 +428,21 @@ uint16_t USBD_Get_Configuration_Number(uint8_t class_type, uint8_t interface_typ
 #define USBD_CDCACM_EPOUT_HS_MPS                      512U
 #define USBD_CDCACM_EPINCMD_FS_BINTERVAL              5U
 #define USBD_CDCACM_EPINCMD_HS_BINTERVAL              5U
+
+/* Device AUDIO Class*/
+
+/* Device AUDIO Class */
+#define USBD_AUDIO_EPOUT_ADDR                        0x03U
+#define USBD_AUDIO_EPOUT_FS_MPS                      1023U
+#define USBD_AUDIO_EPOUT_HS_MPS                      1024U
+#define USBD_AUDIO_EPOUT_FS_BINTERVAL              1U
+#define USBD_AUDIO_EPOUT_HS_BINTERVAL              1U
+
+#define USBD_AUDIO_EPIN_ADDR                        0x83U
+#define USBD_AUDIO_EPIN_FS_MPS                      1023U
+#define USBD_AUDIO_EPIN_HS_MPS                      1024U
+#define USBD_AUDIO_EPIN_FS_BINTERVAL              1U
+#define USBD_AUDIO_EPIN_HS_BINTERVAL              1U
 
 #ifndef USBD_CONFIG_STR_DESC_IDX
 #define USBD_CONFIG_STR_DESC_IDX                      0U
